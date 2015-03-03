@@ -40,3 +40,5 @@ service httpd restart
 # disalbe the firewall
 service iptables stop
 chkconfig iptables off
+
+echo "export GOPATH=/vagrant" >> /etc/bashrc
