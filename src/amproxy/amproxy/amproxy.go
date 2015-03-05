@@ -6,6 +6,7 @@ import (
     "os"
     "strconv"
 
+    "amproxy/envparse"
     "amproxy/msgparser"
 )
 
@@ -15,10 +16,10 @@ func main() {
     var err error
 
     // Read config from the environment
-    var bInterface = getSettingStr("BIND_INTERFACE", "127.0.0.1")
-    var bPort      = getSettingInt("BIND_PORT", 2005)
-    var cServer    = getSettingStr("CARBON_SERVER", "localhost")
-    var cPort      = getSettingInt("CARBON_PORT", 2003)
+    var bInterface = envparse.GetSettingStr("BIND_INTERFACE", "127.0.0.1")
+    var bPort      = envparse.GetSettingInt("BIND_PORT", 2005)
+    var cServer    = envparse.GetSettingStr("CARBON_SERVER", "localhost")
+    var cPort      = envparse.GetSettingInt("CARBON_PORT", 2003)
 
     cServerAddr, err = net.ResolveTCPAddr("tcp", cServer + ":" + strconv.Itoa(cPort))
     if err != nil {
@@ -46,30 +47,6 @@ func main() {
         // Handle connections in a new goroutine.
         go handleRequest(conn)
     }
-}
-
-func getSettingStr(key string, def string) string {
-    val := os.Getenv(key)
-    if val == "" {
-        val = def
-    }
-    return val
-}
-
-func getSettingInt(key string, def int) int {
-    var valInt int
-    val := os.Getenv(key)
-    if val == "" {
-        valInt = def
-    } else {
-        valParsed, err := strconv.Atoi(val)
-        if err != nil {
-            fmt.Printf("Expecting an integer for key %s", key)
-            os.Exit(1)
-        }
-        valInt = valParsed
-    }
-    return valInt
 }
 
 func handleRequest(conn net.Conn) {
