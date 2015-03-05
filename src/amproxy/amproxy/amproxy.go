@@ -2,15 +2,21 @@ package main
 
 import (
     "fmt"
+    "math"
     "net"
     "os"
     "strconv"
+    "time"
 
+    "amproxy/auth"
     "amproxy/envparse"
     "amproxy/msgparser"
+    "amproxy/sigvalidator"
 )
 
 var cServerAddr *net.TCPAddr
+var skew float64
+var authMap map[string]string
 
 func main() {
     var err error
@@ -20,6 +26,8 @@ func main() {
     var bPort      = envparse.GetSettingInt("BIND_PORT", 2005)
     var cServer    = envparse.GetSettingStr("CARBON_SERVER", "localhost")
     var cPort      = envparse.GetSettingInt("CARBON_PORT", 2003)
+    authMap        = auth.Parse(envparse.GetSettingStr("AUTH", ""))
+    skew           = float64(envparse.GetSettingInt("SKEW", 300))
 
     cServerAddr, err = net.ResolveTCPAddr("tcp", cServer + ":" + strconv.Itoa(cPort))
     if err != nil {
@@ -72,21 +80,41 @@ func handleRequest(conn net.Conn) {
         fmt.Println(string(buf[:n]))
         msg, e := msgparser.Decompose(string(buf[:n]))
         if e != nil {
-            fmt.Printf("Error decomposing message %q - %s", string(buf[:n]), e.Error())
+            fmt.Printf("Error decomposing message %q - %s\n", string(buf[:n]), e.Error())
+            return
+        }
+
+        metricstr := msg.Name + " " + strconv.Itoa(msg.Value) + " " + strconv.Itoa(msg.Timestamp)
+        signstr := metricstr + " " + msg.Public_key
+
+        key, ok := authMap[msg.Public_key]
+
+        if !ok {
+            fmt.Printf("key not defined for %s\n", msg.Public_key)
+            return
+        }
+
+        sig := sigvalidator.ComputeSignature(signstr, key)
+
+        if sig != msg.Signature {
+            fmt.Printf("Computed signature %s doesn't match provided signature %s\n", sig, msg.Signature)
+            return
+        }
+
+        delta := math.Abs(float64(time.Now().Unix() - int64(msg.Timestamp)))
+        if delta > skew {
+            fmt.Printf("delta = %.0f, max skew set to %.0f\n", delta, skew)
             return
         }
 
         fmt.Println(msg.Public_key)
-
-        metricstr := msg.Name + " " + strconv.Itoa(msg.Value) + " " + strconv.Itoa(msg.Timestamp)
+        fmt.Println(sig)
 
         _, err = carbon_conn.Write([]byte(metricstr + "\n"))
-        //_, err = conn.Write([]byte(msg.Name + " " + strconv.Itoa(msg.Value) + " " + strconv.Itoa(msg.Timestamp)))
         if err != nil {
             println("Write to carbon server failed:", err.Error())
             return
         }
-        fmt.Println("Wrote to server: ", metricstr)
 
         // write the n bytes read
         _, err2 := conn.Write(buf[0:n])
