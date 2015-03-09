@@ -10,8 +10,7 @@ import (
 
     "amproxy/auth"
     "amproxy/envparse"
-    "amproxy/msgparser"
-    "amproxy/sigvalidator"
+    "amproxy/message"
 )
 
 var cServerAddr *net.TCPAddr
@@ -78,14 +77,12 @@ func handleRequest(conn net.Conn) {
         }
 
         fmt.Println(string(buf[:n]))
-        msg, e := msgparser.Decompose(string(buf[:n]))
+        msg := new(message.Message)
+        e := msg.Decompose(string(buf[:n]))
         if e != nil {
             fmt.Printf("Error decomposing message %q - %s\n", string(buf[:n]), e.Error())
             return
         }
-
-        metricstr := msg.Name + " " + strconv.Itoa(msg.Value) + " " + strconv.Itoa(msg.Timestamp)
-        signstr := metricstr + " " + msg.Public_key
 
         key, ok := authMap[msg.Public_key]
 
@@ -94,7 +91,7 @@ func handleRequest(conn net.Conn) {
             return
         }
 
-        sig := sigvalidator.ComputeSignature(signstr, key)
+        sig := msg.ComputeSignature(key)
 
         if sig != msg.Signature {
             fmt.Printf("Computed signature %s doesn't match provided signature %s\n", sig, msg.Signature)
@@ -110,7 +107,7 @@ func handleRequest(conn net.Conn) {
         fmt.Println(msg.Public_key)
         fmt.Println(sig)
 
-        _, err = carbon_conn.Write([]byte(metricstr + "\n"))
+        _, err = carbon_conn.Write([]byte(msg.MetricStr() + "\n"))
         if err != nil {
             println("Write to carbon server failed:", err.Error())
             return
