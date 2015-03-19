@@ -47,11 +47,13 @@ metric value timestamp public_key base64_signature
 
 ### Example:
 
+```
 metric = foo
 value = 1234
 timestamp = 1425059762
 public_key = my_public_key
 secret_key = my_secret_key
+```
 
 The message for which we will generate the signature becomes
 
