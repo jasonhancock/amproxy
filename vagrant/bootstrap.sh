@@ -37,6 +37,10 @@ sed -i 's/60s:1d/60s:30d/' /etc/carbon/storage-schemas.conf
 service carbon-cache restart
 service httpd restart
 
+chkconfig mysqld on
+chkconfig carbon-cache on
+chkconfig httpd on
+
 # disalbe the firewall
 service iptables stop
 chkconfig iptables off
