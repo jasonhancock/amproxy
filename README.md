@@ -88,3 +88,27 @@ The message going over the wire becomes:
 ```
 foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=
 ```
+
+## Building/Testing
+
+To build in the vagrant environment, do the following:
+
+```
+cd /vagrant/src/amproxy/amproxy
+go install
+```
+
+This will generate the `/vagrant/bin/amproxy` binary. You can then run the binary:
+
+```
+AUTH=public_key1:private_key1 /vagrant/bin/amproxy
+```
+
+And ship your signed metrics to localhost:2005
+
+## Ideas
+
+This was just a proof of concept. Ideas for the future would be some sort of
+pluggable backend to fetch the public/private keypairs from. As I'm still
+prototyping, I didn't want to build out a complicated system that tied into
+MySQL, Redis, Memcached, or some other backend API.
