@@ -34,9 +34,14 @@ var c counters
 
 func handler(w http.ResponseWriter, r *http.Request) {
     b, err := json.Marshal(c)
-    if err  == nil {
-        fmt.Fprintf(w, "%s", b)
+
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
     }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(b)
 }
 
 func main() {
