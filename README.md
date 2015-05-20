@@ -19,8 +19,9 @@ deal with that.
 Instead, I run Carbon bound to 127.0.0.1:2003 and run amproxy on port 2005
 exposed to the internet. The client devices are each given a public/private key
 pair that can be used to generate signed messages. These signed messages are
-sent to amproxy which authenticates the message by validating the signature,
-then forwarding on the relevant information to Carbon.
+sent to amproxy which authenticates the message by validating the signature
+and whether or not the specified metric is authorized for the given key pair,
+and if so, forwards the metric on to Carbon.
 
 ## Configuration
 
@@ -32,10 +33,30 @@ available:
 * CARBON\_SERVER - The hostname or IP address of the carbon server to
 communicate with. Defaults to `localhost`
 * CARBON\_PORT - The port that Carbon is listening on. Defaults to 2003
-* AUTH - a list of public:private key pairs, delimited by commas.
-Example: `public_key1:private_key1,public_key2:private_key2`
+* AUTH_FILE - path to a yaml file with public/private key pairs and the list of
+approved metrics for each keypair. See below
 * SKEW - The maximum skew allowed (in seconds) between the timestamp in a
 message and the current time on the server. Defaults to 300 seconds.
+
+## Auth File Format
+
+```
+---
+apikeys:
+  my_public_key:
+    secret_key: my_secret_key
+    metrics:
+      metric1: 1
+      metric2: 1
+  my_public_key2:
+    secret_key: my_secret_key2
+    metrics:
+      metric3: 1
+      metric4: 1
+```
+
+In the example above, my_public_key is authorized for metric1 and metric2 and
+uses the `my_secret_key` private key.
 
 ## Protocol
 

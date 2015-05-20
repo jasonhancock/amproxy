@@ -1,0 +1,7 @@
+---
+apikeys:
+  apikey:
+    secret_key: blah
+    metrics:
+      metric1: 1
+      metric2: 1
