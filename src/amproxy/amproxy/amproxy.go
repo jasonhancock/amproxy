@@ -1,13 +1,13 @@
 package main
 
 import (
-    "encoding/json"
     "fmt"
     "math"
     "net"
     "net/http"
     "os"
     "strconv"
+    "strings"
     "sync/atomic"
     "time"
 
@@ -19,18 +19,6 @@ var cServerAddr *net.TCPAddr
 var skew float64
 var authMap map[string]Creds
 var c counters
-
-func handler(w http.ResponseWriter, r *http.Request) {
-    b, err := json.Marshal(c)
-
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-
-    w.Header().Set("Content-Type", "application/json")
-    w.Write(b)
-}
 
 func main() {
     var err error
@@ -61,9 +49,11 @@ func main() {
 
     // Set up the metrics http server
     go func() {
-        http.HandleFunc("/", handler)
+        http.HandleFunc("/", metrics_http_handler)
         http.ListenAndServe(":8080", nil)
     }()
+
+    go shipMetrics(cServerAddr, &c)
 
     // Listen for incoming connections.
     l, err := net.Listen("tcp", bInterface + ":" + strconv.Itoa(bPort))
@@ -103,67 +93,81 @@ func handleRequest(conn net.Conn) {
     defer carbon_conn.Close()
 
     var buf [1024]byte
+    buffer := ""
     for {
         n, err := conn.Read(buf[0:])
         if err != nil {
             return
         }
+        buffer = buffer + string(buf[:n])
 
-        fmt.Println(string(buf[:n]))
-        msg := new(message.Message)
-        e := msg.Decompose(string(buf[:n]))
-        if e != nil {
-            atomic.AddUint64(&c.BadDecompose, 1)
-            fmt.Printf("Error decomposing message %q - %s\n", string(buf[:n]), e.Error())
-            return
+        // If the buffer ends in a newline, process the metrics
+        if string(buf[n - 1]) == "\n" {
+            lines := strings.Split(buffer, "\n")
+
+            for i := 0; i < len(lines) ; i++ {
+                if len(strings.TrimSpace(lines[i])) > 0 {
+                    processMessage(carbon_conn, lines[i])
+                }
+            }
+
+            buffer = ""
         }
+    }
+}
 
-        creds, ok := authMap[msg.Public_key]
+func processMessage(conn *net.TCPConn, line string) {
 
-        if !ok {
-            atomic.AddUint64(&c.BadKeyundef, 1)
-            fmt.Printf("key not defined for %s\n", msg.Public_key)
-            return
-        }
+    msg := new(message.Message)
+    e := msg.Decompose(line)
+    if e != nil {
+        atomic.AddUint64(&c.BadDecompose, 1)
+        fmt.Printf("Error decomposing message %q - %s\n", line, e.Error())
+        return
+    }
 
-        sig := msg.ComputeSignature(creds.SecretKey)
+    creds, ok := authMap[msg.Public_key]
 
-        if sig != msg.Signature {
-            atomic.AddUint64(&c.BadSig, 1)
-            fmt.Printf("Computed signature %s doesn't match provided signature %s\n", sig, msg.Signature)
-            return
-        }
+    if !ok {
+        atomic.AddUint64(&c.BadKeyundef, 1)
+        fmt.Printf("key not defined for %s\n", msg.Public_key)
+        return
+    }
 
-        delta := math.Abs(float64(time.Now().Unix() - int64(msg.Timestamp)))
-        if delta > skew {
-            atomic.AddUint64(&c.BadSkew, 1)
-            fmt.Printf("delta = %.0f, max skew set to %.0f\n", delta, skew)
-            return
-        }
+    sig := msg.ComputeSignature(creds.SecretKey)
 
-        // validate the metric is on the approved list
-        _, ok = creds.Metrics[msg.Name]
-        if !ok {
-            atomic.AddUint64(&c.BadMetric, 1)
-            fmt.Printf("not an approved metric: %s", msg.Name)
-            return
-        }
+    if sig != msg.Signature {
+        atomic.AddUint64(&c.BadSig, 1)
+        fmt.Printf("Computed signature %s doesn't match provided signature %s\n", sig, msg.Signature)
+        return
+    }
 
-        fmt.Println(msg.Public_key)
-        fmt.Println(sig)
+    delta := math.Abs(float64(time.Now().Unix() - int64(msg.Timestamp)))
+    if delta > skew {
+        atomic.AddUint64(&c.BadSkew, 1)
+        fmt.Printf("delta = %.0f, max skew set to %.0f\n", delta, skew)
+        return
+    }
 
-        _, err = carbon_conn.Write([]byte(msg.MetricStr() + "\n"))
-        if err != nil {
-            atomic.AddUint64(&c.BadCarbonwrite, 1)
-            println("Write to carbon server failed:", err.Error())
-            return
-        }
-        atomic.AddUint64(&c.GoodMetric, 1)
+    // validate the metric is on the approved list
+    _, ok = creds.Metrics[msg.Name]
+    if !ok {
+        atomic.AddUint64(&c.BadMetric, 1)
+        fmt.Printf("not an approved metric: %s", msg.Name)
+        return
+    }
 
-        // write the n bytes read
-        _, err2 := conn.Write(buf[0:n])
-        if err2 != nil {
-            return
-        }
+    _, err := conn.Write([]byte(msg.MetricStr() + "\n"))
+    if err != nil {
+        atomic.AddUint64(&c.BadCarbonwrite, 1)
+        println("Write to carbon server failed:", err.Error())
+        return
+    }
+    atomic.AddUint64(&c.GoodMetric, 1)
+
+    // write the n bytes read
+    _, err2 := conn.Write([]byte(line))
+    if err2 != nil {
+        return
     }
 }
