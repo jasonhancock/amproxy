@@ -15,18 +15,6 @@ import (
     "amproxy/message"
 )
 
-type counters struct {
-    Connections uint64 `json:"connections"`
-    BadSkew uint64 `json:"badskew"`
-    BadSig uint64 `json:"badsig"`
-    BadKeyundef uint64 `json:"badkeyundef"`
-    BadDecompose uint64 `json:"baddecompose"`
-    BadMetric uint64 `json:"badmetric"`
-    BadCarbonconn uint64 `json:"badcarbonconn"`
-    BadCarbonwrite uint64 `json:"badcarbonwrite"`
-    GoodMetric uint64 `json:"goodmetric"`
-}
-
 var cServerAddr *net.TCPAddr
 var skew float64
 var authMap map[string]Creds
@@ -47,15 +35,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
     var err error
 
-    c.Connections = 0
-    c.BadSkew = 0
-    c.BadSig = 0
-    c.BadKeyundef = 0
-    c.BadDecompose = 0
-    c.BadMetric = 0
-    c.BadCarbonwrite = 0
-    c.BadCarbonconn = 0
-    c.GoodMetric = 0
+    c.init()
 
     // Read config from the environment
     var bInterface = envparse.GetSettingStr("BIND_INTERFACE", "127.0.0.1")
