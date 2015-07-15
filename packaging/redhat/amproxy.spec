@@ -1,3 +1,5 @@
+%define debug_package %{nil}
+
 Summary:        Authenticated Metrics Proxy for Carbon/Graphite
 Name:           amproxy
 Version:        %{version}
