@@ -1,4 +1,4 @@
-all: test
+all: deps test
 	cd src/amproxy/amproxy && go install
 deps:
 	go get
