@@ -58,6 +58,9 @@ apikeys:
 In the example above, my_public_key is authorized for metric1 and metric2 and
 uses the `my_secret_key` private key.
 
+If the AUTH_FILE is updated on disk, it will automatically get reloaded within
+60 seconds.
+
 ## Protocol
 
 Messages going over the wire are in the form:
