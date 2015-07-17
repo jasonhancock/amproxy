@@ -41,7 +41,7 @@ func shipMetrics(cServerAddr *net.TCPAddr, c *counters) {
     format := "%s.%s %d %d\n"
     for _ = range ticker.C {
          b, _ := json.Marshal(c)
-         fmt.Printf("%s", b)
+         fmt.Printf("%s\n", b)
 
         // connect to carbon server
         carbon_conn, err := net.DialTCP("tcp", nil, cServerAddr)

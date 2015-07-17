@@ -3,6 +3,8 @@ package main
 import (
     "io/ioutil"
     "gopkg.in/yaml.v2"
+    "os"
+    "time"
 )
 
 type config struct {
@@ -14,8 +16,13 @@ type Creds struct {
     Metrics map[string]uint8 `yaml:"metrics"`
 }
 
-func loadUserConfigFile(filename string) map[string]Creds {
+func loadUserConfigFile(filename string) (map[string]Creds, time.Time) {
     var f config
+
+    info, err := os.Stat(filename)
+    if err != nil {
+        panic(err)
+    }
 
     yamlFile, err := ioutil.ReadFile(filename)
     err = yaml.Unmarshal(yamlFile, &f)
@@ -23,5 +30,5 @@ func loadUserConfigFile(filename string) map[string]Creds {
         panic(err)
     }
 
-    return f.Apikeys
+    return f.Apikeys, info.ModTime()
 }

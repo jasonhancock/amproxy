@@ -12,7 +12,7 @@ func TestLoadFile(t *testing.T) {
     _, filename, _, _ := runtime.Caller(0)
     f := path.Join(path.Dir(filename), "fixtures", "authfile.yaml")
 
-    j := loadUserConfigFile(f)
+    j, _ := loadUserConfigFile(f)
 
     _, ok := j["apikey"].Metrics["metric1"]
     if !ok {

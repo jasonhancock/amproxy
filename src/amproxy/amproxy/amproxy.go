@@ -18,6 +18,7 @@ import (
 var cServerAddr *net.TCPAddr
 var skew float64
 var authMap map[string]Creds
+var authMapLoadTime time.Time
 var c counters
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
         os.Exit(1)
     }
 
-    authMap = loadUserConfigFile(authFile)
+    authMap, authMapLoadTime = loadUserConfigFile(authFile)
 
     cServerAddr, err = net.ResolveTCPAddr("tcp", cServer + ":" + strconv.Itoa(cPort))
     if err != nil {
@@ -54,6 +55,8 @@ func main() {
     }()
 
     go shipMetrics(cServerAddr, &c)
+
+    go reloadAuth(authFile)
 
     // Listen for incoming connections.
     l, err := net.Listen("tcp", bInterface + ":" + strconv.Itoa(bPort))
@@ -75,6 +78,23 @@ func main() {
         // Handle connections in a new goroutine.
         atomic.AddUint64(&c.Connections, 1)
         go handleRequest(conn)
+    }
+}
+
+func reloadAuth(authFile string) {
+    ticker := time.NewTicker(time.Second * 60)
+    for _ = range ticker.C {
+        info, err := os.Stat(authFile)
+        if err != nil {
+             fmt.Println("Error stating authFile:", err.Error())
+             continue
+        }
+
+        ts := info.ModTime()
+        if ts != authMapLoadTime {
+            fmt.Println("Reloading auth file configuration")
+            authMap, authMapLoadTime = loadUserConfigFile(authFile)
+        }
     }
 }
 
