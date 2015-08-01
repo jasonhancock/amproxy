@@ -9,6 +9,7 @@ Group:          Development/Languages
 URL:            https://github.com/jasonhancock/amproxy
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Requires:       daemonize
 
 %description
 Authenticate Metrics Proxy for Carbon/Graphite.
@@ -23,8 +24,8 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/bin/amproxy $RPM_BUILD_ROOT/usr/bin/
+mkdir -p $RPM_BUILD_ROOT/usr/sbin
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/bin/amproxy $RPM_BUILD_ROOT/usr/sbin/
 
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/etc/rc.d/init.d/amproxy
@@ -55,7 +56,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-/usr/bin/amproxy
+/usr/sbin/amproxy
 %dir %{_localstatedir}/log/amproxy
 %{_sysconfdir}/rc.d/init.d/amproxy
 
