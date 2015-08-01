@@ -11,6 +11,8 @@ lock_file=/var/run/amproxy.lock
 log_file=/var/log/amproxy/amproxy.log
 user=amproxy
 
+export AUTH_FILE=/etc/amproxy/auth_file.yaml
+
 # Source function library.
 . /etc/rc.d/init.d/functions
 

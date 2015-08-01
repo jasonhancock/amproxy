@@ -27,7 +27,9 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/bin/amproxy $RPM_BUILD_ROOT/usr/sbin/
 
-mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d
+install -m 0644 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/auth_file.yaml $RPM_BUILD_ROOT/%_sysconfdir}/amproxy/auth_file.yaml
 install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/etc/rc.d/init.d/amproxy
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/amproxy
@@ -57,7 +59,8 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 /usr/sbin/amproxy
-%dir %{_localstatedir}/log/amproxy
 %{_sysconfdir}/rc.d/init.d/amproxy
+%config(noreplace) %{_sysconfdir}/amproxy/auth_file.yaml
 
 %attr(0700,amproxy,amproxy) %dir %{_localstatedir}/lib/amproxy
+%attr(0700,amproxy,amproxy) %dir %{_localstatedir}/log/amproxy
