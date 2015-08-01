@@ -29,8 +29,10 @@ install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/bin/amproxy $RPM_BUILD_ROOT/us
 
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d
-install -m 0644 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/auth_file.yaml $RPM_BUILD_ROOT/%_sysconfdir}/amproxy/auth_file.yaml
-install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/etc/rc.d/init.d/amproxy
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
+install -m 0644 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/auth_file.yaml $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy/auth_file.yaml
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d/amproxy
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/amproxy
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/amproxy
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log/amproxy
@@ -61,6 +63,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/sbin/amproxy
 %{_sysconfdir}/rc.d/init.d/amproxy
 %config(noreplace) %{_sysconfdir}/amproxy/auth_file.yaml
+%config(noreplace) %{_sysconfdir}/logrotate.d/amproxy
 
 %attr(0700,amproxy,amproxy) %dir %{_localstatedir}/lib/amproxy
 %attr(0700,amproxy,amproxy) %dir %{_localstatedir}/log/amproxy

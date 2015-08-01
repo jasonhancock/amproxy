@@ -1,0 +1,8 @@
+/var/log/amproxy/*.log {
+    weekly
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
