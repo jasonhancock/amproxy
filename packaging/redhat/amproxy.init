@@ -1,0 +1,90 @@
+#!/bin/bash
+#
+# chkconfig: - 90 2
+# description: amproxy startup script
+#
+
+server=/usr/sbin/amproxy
+prog=amproxy
+pid_file=/var/run/amproxy.pid
+lock_file=/var/run/amproxy.lock
+log_file=/var/log/amproxy/amproxy.log
+user=amproxy
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+
+start(){
+    daemonize -e $log_file -o $log_file -p $pid_file -l $lock_file -u $user $server
+    ret=$?
+    if [ $ret -eq 0 ]; then
+        action $"Starting $prog: " /bin/true
+    else
+        action $"Starting $prog: " /bin/false
+    fi
+    return $ret
+}
+
+stop(){
+    PID=`cat "$pid_file"  2>/dev/null `
+    if [ -n "$PID" ]; then
+        /bin/kill "$PID" >/dev/null 2>&1
+        ret=$?
+        if [ $ret -eq 0 ]; then
+            STOPTIMEOUT=60
+            while [ $STOPTIMEOUT -gt 0 ]; do
+                /bin/kill -0 "$PID" >/dev/null 2>&1 || break
+                sleep 1
+                let STOPTIMEOUT=${STOPTIMEOUT}-1
+            done
+            if [ $STOPTIMEOUT -eq 0 ]; then
+                echo "Timeout error occurred trying to stop Daemon."
+                ret=1
+                action $"Stopping $prog: " /bin/false
+            else
+                action $"Stopping $prog: " /bin/true
+                rm -rf $pid_file
+            fi
+        else
+            action $"Stopping $prog: " /bin/false
+        fi
+    else
+        ret=1
+        action $"Stopping $prog: " /bin/false
+    fi
+    return $ret
+}
+
+restart(){
+    stop
+    start
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status -p $pid_file $prog
+        ;;
+    condrestart)
+        if status -p ${pidfile} $prog >&/dev/null; then
+            stop
+            start
+        fi
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+        exit 1
+esac
+
+exit $?
