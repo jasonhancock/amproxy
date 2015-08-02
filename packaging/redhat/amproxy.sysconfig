@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export BIND_INTERFACE=127.0.0.1
+export BIND_PORT=2005
+export CARBON_SERVER=localhost
+export CARBON_PORT=2003
+export AUTH_FILE=/etc/amproxy/auth_file.yaml
+export SKEW=300
