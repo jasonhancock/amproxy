@@ -177,7 +177,6 @@ func processMessage(conn *net.TCPConn, line string) {
         return
     }
 
-    fmt.Printf("writing: |" + msg.MetricStr() + "|\n")
     _, err := conn.Write([]byte(msg.MetricStr() + "\n"))
     if err != nil {
         atomic.AddUint64(&c.BadCarbonwrite, 1)
