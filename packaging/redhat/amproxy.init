@@ -17,7 +17,7 @@ user=amproxy
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
 start(){
-    daemonize -e $log_file -o $log_file -p $pid_file -l $lock_file -u $user $server
+    daemonize -a -e $log_file -o $log_file -p $pid_file -l $lock_file -u $user $server
     ret=$?
     if [ $ret -eq 0 ]; then
         action $"Starting $prog: " /bin/true
