@@ -20,8 +20,8 @@ func TestDecompose(t *testing.T) {
         t.Errorf("Name expected: %q got: %q", "foo", m.Name)
     }
 
-    if m.Value != 1234 {
-        t.Errorf("Value expected: %d got: %d", 1234, m.Value)
+    if m.Value != "1234" {
+        t.Errorf("Value expected: %s got: %s", "1234", m.Value)
     }
 
     if m.Timestamp != 1425059762 {

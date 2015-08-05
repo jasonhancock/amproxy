@@ -11,7 +11,7 @@ import (
 
 type Message struct {
     Name string
-    Value int
+    Value string
     Timestamp int
     Public_key string
     Signature string
@@ -30,12 +30,7 @@ func (m *Message) Decompose(str string) error {
     }
 
     m.Name = pieces[0]
-
-    value, err := strconv.Atoi(pieces[1])
-    if err != nil {
-        return fmt.Errorf("Error parsing metric value: %q", pieces[1])
-    }
-    m.Value = value
+    m.Value = pieces[1]
 
     timestamp, err2 := strconv.Atoi(pieces[2])
     if err2 != nil {
@@ -50,7 +45,7 @@ func (m *Message) Decompose(str string) error {
 }
 
 func (m Message) ComputeSignature(secret string) string {
-    message := fmt.Sprintf("%s %d %d %s", m.Name, m.Value, m.Timestamp, m.Public_key)
+    message := fmt.Sprintf("%s %s %d %s", m.Name, m.Value, m.Timestamp, m.Public_key)
     key := []byte(secret)
     h := hmac.New(sha256.New, key)
     h.Write([]byte(message))
@@ -58,5 +53,5 @@ func (m Message) ComputeSignature(secret string) string {
 }
 
 func (m Message) MetricStr() string {
-    return fmt.Sprintf("%s %d %d", m.Name, m.Value, m.Timestamp)
+    return fmt.Sprintf("%s %s %d", m.Name, m.Value, m.Timestamp)
 }
