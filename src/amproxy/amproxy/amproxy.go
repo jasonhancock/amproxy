@@ -173,7 +173,7 @@ func processMessage(conn *net.TCPConn, line string) {
     _, ok = creds.Metrics[msg.Name]
     if !ok {
         atomic.AddUint64(&c.BadMetric, 1)
-        fmt.Printf("not an approved metric: %s", msg.Name)
+        fmt.Printf("not an approved metric: %s\n", msg.Name)
         return
     }
 
