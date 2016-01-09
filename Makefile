@@ -1,9 +1,8 @@
-all: deps test
-	cd src/amproxy/amproxy && go install
+all: deps
+	go install ./...
 deps:
-	cd src/amproxy/amproxy && go get -v
+	go get -v ./...
+test:
+	go test -v ./...
 package:
 	$(MAKE) -C packaging
-test:
-	cd src/amproxy/amproxy && go test
-	cd src/amproxy/message && go test

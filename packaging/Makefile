@@ -1,5 +1,6 @@
 pkg = amproxy
 version_base = 1.0
+pkg_path = github.com/jasonhancock/amproxy
 
 ifndef BUILD_NUMBER
 version = 0.99.0
@@ -10,8 +11,8 @@ endif
 topdir = /tmp/$(pkg)-$(version)
 
 all: clean
-	@(mkdir $(topdir) && cd $(topdir) && mkdir SRPMS BUILD RPMS SOURCES SPECS tmp)
-	@(rsync -av ../ $(topdir)/SOURCES/$(pkg)-$(version))
+	@(mkdir -p $(topdir)/SOURCES/$(pkg)-$(version)/src/$(pkg_path) && cd $(topdir) && mkdir SRPMS BUILD RPMS SPECS tmp)
+	@(rsync -av ../ $(topdir)/SOURCES/$(pkg)-$(version)/src/$(pkg_path))
 	@(cd $(topdir)/SOURCES && tar -cvzf $(pkg)-$(version).tar.gz $(pkg)-$(version)/)
 	cp redhat/$(pkg).spec $(topdir)/SPECS/
 	rpmbuild -bb --define "_topdir $(topdir)" --define "_tmppath $(topdir)/tmp" --define "version $(version)" $(topdir)/SPECS/$(pkg).spec

@@ -1,5 +1,1 @@
-/.vagrant
-/bin
-/pkg
 packaging/*.rpm
-src/gopkg.in

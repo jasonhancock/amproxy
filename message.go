@@ -1,4 +1,4 @@
-package message
+package amproxy
 
 import (
     "crypto/hmac"

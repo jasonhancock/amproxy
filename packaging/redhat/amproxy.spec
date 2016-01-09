@@ -20,7 +20,8 @@ Authenticate Metrics Proxy for Carbon/Graphite.
 %build
 
 export GOPATH=$RPM_BUILD_DIR/%{name}-%{version}
-make
+cd src/github.com/jasonhancock/amproxy && make
+
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -31,10 +32,10 @@ mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig
-install -m 0644 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/auth_file.yaml $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy/auth_file.yaml
-install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d/amproxy
-install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/amproxy
-install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/packaging/redhat/amproxy.sysconfig $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig/amproxy
+install -m 0644 $RPM_BUILD_DIR/%{name}-%{version}/src/github.com/jasonhancock/amproxy/packaging/redhat/auth_file.yaml $RPM_BUILD_ROOT/%{_sysconfdir}/amproxy/auth_file.yaml
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/src/github.com/jasonhancock/amproxy/packaging/redhat/amproxy.init $RPM_BUILD_ROOT/%{_sysconfdir}/rc.d/init.d/amproxy
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/src/github.com/jasonhancock/amproxy/packaging/redhat/amproxy.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/amproxy
+install -m 0755 $RPM_BUILD_DIR/%{name}-%{version}/src/github.com/jasonhancock/amproxy/packaging/redhat/amproxy.sysconfig $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig/amproxy
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/amproxy
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/log/amproxy
