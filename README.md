@@ -1,7 +1,8 @@
 # amproxy - Authenticated Metrics Proxy
 
-[![Build Status](https://travis-ci.org/jasonhancock/amproxy.svg?branch=master)](https://travis-ci.org/jasonhancock/amproxy)
 [![GoDoc](https://godoc.org/github.com/jasonhancock/amproxy?status.svg)](https://godoc.org/github.com/jasonhancock/amproxy)
+[![Build Status](https://travis-ci.org/jasonhancock/amproxy.svg?branch=master)](https://travis-ci.org/jasonhancock/amproxy)
+[![Go Report Card](https://goreportcard.com/badge/jasonhancock/amproxy)](https://goreportcard.com/report/jasonhancock/amproxy)
 
 A proxy for Graphite's Carbon service that authenticates messages before passing
 them on to Carbon or dropping them on the floor.
