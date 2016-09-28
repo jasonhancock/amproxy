@@ -86,7 +86,7 @@ func main() {
 
 func reloadAuth(authFile string) {
 	ticker := time.NewTicker(time.Second * 60)
-	for _ = range ticker.C {
+	for range ticker.C {
 		info, err := os.Stat(authFile)
 		if err != nil {
 			fmt.Println("Error stating authFile:", err.Error())

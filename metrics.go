@@ -29,7 +29,7 @@ func ShipMetrics(cServerAddr *net.TCPAddr, c *counters) {
 	hostname, _ := os.Hostname()
 	pre := ReverseDelimitedString(hostname, ".") + ".amproxy"
 	format := "%s.%s %d %d\n"
-	for _ = range ticker.C {
+	for range ticker.C {
 		b, _ := json.Marshal(c)
 		fmt.Printf("%s\n", b)
 
