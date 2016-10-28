@@ -9,4 +9,6 @@ import (
 func TestReverseString(t *testing.T) {
 	is := is.New(t)
 	is.Equal(reverseDelimitedString("foo.bar.baz", "."), "baz.bar.foo")
+	is.Equal(reverseDelimitedString("foo.bar", "."), "bar.foo")
+	is.Equal(reverseDelimitedString("foo", "."), "foo")
 }

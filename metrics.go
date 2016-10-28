@@ -63,11 +63,10 @@ func writeMetric(conn *net.TCPConn, str string) {
 func reverseDelimitedString(str, delimiter string) string {
 	pieces := strings.Split(str, delimiter)
 
-	var rev []string
-
-	for i := len(pieces) - 1; i >= 0; i-- {
-		rev = append(rev, pieces[i])
+	for i := 0; i < len(pieces)/2; i++ {
+		j := len(pieces) - i - 1
+		pieces[i], pieces[j] = pieces[j], pieces[i]
 	}
 
-	return strings.Join(rev, delimiter)
+	return strings.Join(pieces, delimiter)
 }
