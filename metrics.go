@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -71,16 +70,4 @@ func reverseDelimitedString(str, delimiter string) string {
 	}
 
 	return strings.Join(rev, delimiter)
-}
-
-func Metrics_http_handler(w http.ResponseWriter, r *http.Request) {
-	b, err := json.Marshal(Counters)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(b)
 }

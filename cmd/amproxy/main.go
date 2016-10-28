@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/viper"
 	"math"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -49,12 +48,6 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("Carbon server: " + carbon_server)
-
-	// Set up the metrics http server
-	go func() {
-		http.HandleFunc("/", amproxy.Metrics_http_handler)
-		http.ListenAndServe(":8080", nil)
-	}()
 
 	go amproxy.ShipMetrics(cServerAddr, &amproxy.Counters)
 

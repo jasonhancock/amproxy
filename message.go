@@ -27,17 +27,16 @@ func (m Message) String() string {
 func (m *Message) Decompose(str string) error {
 	pieces := strings.Split(strings.TrimSpace(str), " ")
 
-	length := len(pieces)
-	if length != 5 {
+	if len(pieces) != 5 {
 		return errInvalidNumMessageComponents
 	}
 
 	m.Name = pieces[0]
 	m.Value = pieces[1]
 
-	timestamp, err2 := strconv.Atoi(pieces[2])
-	if err2 != nil {
-		return fmt.Errorf("Error parsing timestamp value: %q", pieces[2])
+	timestamp, err := strconv.Atoi(pieces[2])
+	if err != nil {
+		return err
 	}
 	m.Timestamp = timestamp
 
