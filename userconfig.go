@@ -16,19 +16,19 @@ type Creds struct {
 	Metrics   map[string]uint8 `yaml:"metrics"`
 }
 
-func LoadUserConfigFile(filename string) (map[string]Creds, time.Time) {
+func LoadUserConfigFile(filename string) (map[string]Creds, time.Time, error) {
 	var f config
 
 	info, err := os.Stat(filename)
 	if err != nil {
-		panic(err)
+		return nil, time.Unix(0, 0), err
 	}
 
-	yamlFile, err := ioutil.ReadFile(filename)
-	err = yaml.Unmarshal(yamlFile, &f)
+	bytes, err := ioutil.ReadFile(filename)
+	err = yaml.Unmarshal(bytes, &f)
 	if err != nil {
-		panic(err)
+		return nil, time.Unix(0, 0), err
 	}
 
-	return f.Apikeys, info.ModTime()
+	return f.Apikeys, info.ModTime(), err
 }

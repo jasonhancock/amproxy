@@ -1,27 +1,20 @@
-package amproxy_test
+package amproxy
 
 import (
-	"path"
-	"runtime"
 	"testing"
 
-	"github.com/jasonhancock/amproxy"
+	"github.com/cheekybits/is"
 )
 
 func TestLoadFile(t *testing.T) {
+	is := is.New(t)
 
-	_, filename, _, _ := runtime.Caller(0)
-	f := path.Join(path.Dir(filename), "fixtures", "authfile.yaml")
-
-	j, _ := amproxy.LoadUserConfigFile(f)
+	j, _, err := LoadUserConfigFile("fixtures/authfile.yaml")
+	is.NoErr(err)
 
 	_, ok := j["apikey"].Metrics["metric1"]
-	if !ok {
-		t.Errorf("metric1 should be defined, but wasn't")
-	}
+	is.True(ok)
 
 	_, ok = j["apikey"].Metrics["metric3"]
-	if ok {
-		t.Errorf("metric3 should not be defined, but was")
-	}
+	is.False(ok)
 }

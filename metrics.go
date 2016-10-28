@@ -27,7 +27,7 @@ var Counters counters
 func ShipMetrics(cServerAddr *net.TCPAddr, c *counters) {
 	ticker := time.NewTicker(time.Second * 60)
 	hostname, _ := os.Hostname()
-	pre := ReverseDelimitedString(hostname, ".") + ".amproxy"
+	pre := reverseDelimitedString(hostname, ".") + ".amproxy"
 	format := "%s.%s %d %d\n"
 	for range ticker.C {
 		b, _ := json.Marshal(c)
@@ -61,8 +61,7 @@ func writeMetric(conn *net.TCPConn, str string) {
 	}
 }
 
-func ReverseDelimitedString(str, delimiter string) string {
-
+func reverseDelimitedString(str, delimiter string) string {
 	pieces := strings.Split(str, delimiter)
 
 	var rev []string

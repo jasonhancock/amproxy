@@ -1,13 +1,12 @@
-package amproxy_test
+package amproxy
 
 import (
 	"testing"
 
-	"github.com/jasonhancock/amproxy"
+	"github.com/cheekybits/is"
 )
 
 func TestReverseString(t *testing.T) {
-	if amproxy.ReverseDelimitedString("foo.bar.baz", ".") != "baz.bar.foo" {
-		t.Errorf("reverse delimited string failed")
-	}
+	is := is.New(t)
+	is.Equal(reverseDelimitedString("foo.bar.baz", "."), "baz.bar.foo")
 }

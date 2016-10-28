@@ -40,7 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authMap, authMapLoadTime = amproxy.LoadUserConfigFile(authFile)
+	authMap, authMapLoadTime, err = amproxy.LoadUserConfigFile(authFile)
 
 	carbon_server := viper.GetString("carbon_server") + ":" + strconv.Itoa(viper.GetInt("carbon_port"))
 	cServerAddr, err = net.ResolveTCPAddr("tcp", carbon_server)
@@ -96,7 +96,7 @@ func reloadAuth(authFile string) {
 		ts := info.ModTime()
 		if ts != authMapLoadTime {
 			fmt.Println("Reloading auth file configuration")
-			authMap, authMapLoadTime = amproxy.LoadUserConfigFile(authFile)
+			authMap, authMapLoadTime, err = amproxy.LoadUserConfigFile(authFile)
 		}
 	}
 }
@@ -149,11 +149,11 @@ func processMessage(conn *net.TCPConn, line string) {
 		return
 	}
 
-	creds, ok := authMap[msg.Public_key]
+	creds, ok := authMap[msg.PublicKey]
 
 	if !ok {
 		atomic.AddUint64(&amproxy.Counters.BadKeyundef, 1)
-		fmt.Printf("key not defined for %s\n", msg.Public_key)
+		fmt.Printf("key not defined for %s\n", msg.PublicKey)
 		return
 	}
 

@@ -4,21 +4,24 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
+var errInvalidNumMessageComponents = errors.New("Invalid number of components in message")
+
 type Message struct {
-	Name       string
-	Value      string
-	Timestamp  int
-	Public_key string
-	Signature  string
+	Name      string
+	Value     string
+	Timestamp int
+	PublicKey string
+	Signature string
 }
 
 func (m Message) String() string {
-	return fmt.Sprintf("%s %d %d %s %s", m.Name, m.Value, m.Timestamp, m.Public_key, m.Signature)
+	return fmt.Sprintf("%s %d %d %s %s", m.Name, m.Value, m.Timestamp, m.PublicKey, m.Signature)
 }
 
 func (m *Message) Decompose(str string) error {
@@ -26,7 +29,7 @@ func (m *Message) Decompose(str string) error {
 
 	length := len(pieces)
 	if length != 5 {
-		return fmt.Errorf("message: invalid number of components: %d", length)
+		return errInvalidNumMessageComponents
 	}
 
 	m.Name = pieces[0]
@@ -38,14 +41,14 @@ func (m *Message) Decompose(str string) error {
 	}
 	m.Timestamp = timestamp
 
-	m.Public_key = pieces[3]
+	m.PublicKey = pieces[3]
 	m.Signature = pieces[4]
 
 	return nil
 }
 
 func (m Message) ComputeSignature(secret string) string {
-	message := fmt.Sprintf("%s %s %d %s", m.Name, m.Value, m.Timestamp, m.Public_key)
+	message := fmt.Sprintf("%s %s %d %s", m.Name, m.Value, m.Timestamp, m.PublicKey)
 	key := []byte(secret)
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte(message))
