@@ -134,11 +134,10 @@ func handleRequest(conn net.Conn) {
 
 func processMessage(conn *net.TCPConn, line string) {
 
-	msg := new(amproxy.Message)
-	e := msg.Decompose(line)
-	if e != nil {
+	msg, err := amproxy.Decompose(line)
+	if err != nil {
 		atomic.AddUint64(&amproxy.Counters.BadDecompose, 1)
-		fmt.Printf("Error decomposing message %q - %s\n", line, e.Error())
+		fmt.Printf("Error decomposing message %q - %s\n", line, err.Error())
 		return
 	}
 
@@ -173,7 +172,7 @@ func processMessage(conn *net.TCPConn, line string) {
 		return
 	}
 
-	_, err := conn.Write([]byte(msg.MetricStr() + "\n"))
+	_, err = conn.Write([]byte(msg.MetricStr() + "\n"))
 	if err != nil {
 		atomic.AddUint64(&amproxy.Counters.BadCarbonwrite, 1)
 		println("Write to carbon server failed:", err.Error())

@@ -24,11 +24,12 @@ func (m Message) String() string {
 	return fmt.Sprintf("%s %d %d %s %s", m.Name, m.Value, m.Timestamp, m.PublicKey, m.Signature)
 }
 
-func (m *Message) Decompose(str string) error {
+func Decompose(str string) (*Message, error) {
+	m := &Message{}
 	pieces := strings.Split(strings.TrimSpace(str), " ")
 
 	if len(pieces) != 5 {
-		return errInvalidNumMessageComponents
+		return nil, errInvalidNumMessageComponents
 	}
 
 	m.Name = pieces[0]
@@ -36,14 +37,14 @@ func (m *Message) Decompose(str string) error {
 
 	timestamp, err := strconv.Atoi(pieces[2])
 	if err != nil {
-		return err
+		return nil, err
 	}
 	m.Timestamp = timestamp
 
 	m.PublicKey = pieces[3]
 	m.Signature = pieces[4]
 
-	return nil
+	return m, nil
 }
 
 func (m Message) ComputeSignature(secret string) string {
