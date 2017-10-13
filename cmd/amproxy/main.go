@@ -1,182 +1,64 @@
 package main
 
 import (
-	"fmt"
-	"github.com/spf13/viper"
-	"math"
-	"net"
+	"flag"
 	"os"
-	"strconv"
-	"strings"
-	"sync/atomic"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/jasonhancock/amproxy"
+	"github.com/go-kit/kit/log"
+	"github.com/jasonhancock/amproxy/server"
 )
 
-var cServerAddr *net.TCPAddr
-var skew float64
-var authMap map[string]amproxy.Creds
-var authMapLoadTime time.Time
-
 func main() {
-	var err error
+	var (
+		logger log.Logger
 
-	viper.AutomaticEnv()
-	viper.SetDefault("bind_interface", "127.0.0.1")
-	viper.SetDefault("port", 2005)
-	viper.SetDefault("carbon_server", "localhost")
-	viper.SetDefault("carbon_port", "2003")
-	viper.SetDefault("auth_file", "")
-	viper.SetDefault("skew", 300)
+		addr       = flag.String("addr", ":2005", "interface/port to bind to")
+		carbonAddr = flag.String("carbon-addr", "127.0.0.1:2003", "Carbon address:port")
+		authFile   = flag.String("auth-file", "/etc/amproxy/auth_file.yaml", "Location of auth file")
+		skew       = flag.Float64("skew", 300, "amount of clock skew tolerated in seconds")
+	)
+	flag.Parse()
 
-	// Read config from the environment
-	var authFile = viper.GetString("auth_file")
-	skew = viper.GetFloat64("skew")
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 
-	if authFile == "" {
-		println("No auth file passed")
+	if *authFile == "" {
+		logger.Log("msg", "missing_auth_file")
 		os.Exit(1)
 	}
 
-	authMap, authMapLoadTime, err = amproxy.LoadUserConfigFile(authFile)
-
-	carbon_server := viper.GetString("carbon_server") + ":" + strconv.Itoa(viper.GetInt("carbon_port"))
-	cServerAddr, err = net.ResolveTCPAddr("tcp", carbon_server)
+	ap, err := server.NewAuthProviderStaticFile(log.With(logger, "component", "auth_provider"), *authFile, 1*time.Minute)
 	if err != nil {
-		println("Unable to resolve carbon server: ", err.Error())
+		logger.Log("msg", "constructing_auth_provider_error", "error", err)
 		os.Exit(1)
 	}
-	fmt.Println("Carbon server: " + carbon_server)
 
-	go amproxy.ShipMetrics(cServerAddr, &amproxy.Counters)
-
-	go reloadAuth(authFile)
-
-	// Listen for incoming connections.
-	listen_string := viper.GetString("bind_interface") + ":" + strconv.Itoa(viper.GetInt("port"))
-	l, err := net.Listen("tcp", listen_string)
+	mw, err := server.NewMetricWriterCarbon(log.With(logger, "component", "metric_writer"), *carbonAddr, 0, 30)
 	if err != nil {
-		fmt.Println("Error listening:", err.Error())
+		logger.Log("msg", "constructing_metric_writer_error", "error", err)
 		os.Exit(1)
 	}
-	// Close the listener when the application closes.
-	defer l.Close()
-	fmt.Println("Listening on " + listen_string)
 
-	for {
-		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
-		// Handle connections in a new goroutine.
-		atomic.AddUint64(&amproxy.Counters.Connections, 1)
-		go handleRequest(conn)
-	}
-}
-
-func reloadAuth(authFile string) {
-	ticker := time.NewTicker(time.Second * 60)
-	for range ticker.C {
-		info, err := os.Stat(authFile)
-		if err != nil {
-			fmt.Println("Error stating authFile:", err.Error())
-			continue
-		}
-
-		ts := info.ModTime()
-		if ts != authMapLoadTime {
-			fmt.Println("Reloading auth file configuration")
-			authMap, authMapLoadTime, err = amproxy.LoadUserConfigFile(authFile)
-		}
-	}
-}
-
-func handleRequest(conn net.Conn) {
-	defer conn.Close()
-
-	fmt.Println("Connection from: ", conn.RemoteAddr())
-
-	// connect to carbon server
-	carbon_conn, err := net.DialTCP("tcp", nil, cServerAddr)
+	s, err := server.NewServer(log.With(logger, "component", "server"), *addr, *skew, ap, mw)
 	if err != nil {
-		atomic.AddUint64(&amproxy.Counters.BadCarbonconn, 1)
-		println("Connection to carbon server failed:", err.Error())
-		return
+		logger.Log("msg", "constructing_server_error", "error", err)
+		os.Exit(1)
 	}
-	defer carbon_conn.Close()
 
-	var buf [1024]byte
-	buffer := ""
-	for {
-		n, err := conn.Read(buf[0:])
-		if err != nil {
-			return
-		}
-		buffer = buffer + string(buf[:n])
+	// subscribe to signals to shut down the server
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, os.Interrupt)
+	signal.Notify(stopChan, os.Kill)
+	signal.Notify(stopChan, syscall.SIGTERM)
 
-		// If the buffer ends in a newline, process the metrics
-		if string(buf[n-1]) == "\n" {
-			lines := strings.Split(buffer, "\n")
-
-			for i := 0; i < len(lines); i++ {
-				if len(strings.TrimSpace(lines[i])) > 0 {
-					processMessage(carbon_conn, lines[i])
-				}
-			}
-
-			buffer = ""
-		}
-	}
-}
-
-func processMessage(conn *net.TCPConn, line string) {
-
-	msg, err := amproxy.Decompose(line)
+	err = s.Run()
 	if err != nil {
-		atomic.AddUint64(&amproxy.Counters.BadDecompose, 1)
-		fmt.Printf("Error decomposing message %q - %s\n", line, err.Error())
-		return
+		logger.Log("msg", "running_server_error", "error", err)
+		os.Exit(1)
 	}
-
-	creds, ok := authMap[msg.PublicKey]
-
-	if !ok {
-		atomic.AddUint64(&amproxy.Counters.BadKeyundef, 1)
-		fmt.Printf("key not defined for %s\n", msg.PublicKey)
-		return
-	}
-
-	sig := msg.ComputeSignature(creds.SecretKey)
-
-	if sig != msg.Signature {
-		atomic.AddUint64(&amproxy.Counters.BadSig, 1)
-		fmt.Printf("Computed signature %s doesn't match provided signature %s\n", sig, msg.Signature)
-		return
-	}
-
-	delta := math.Abs(float64(time.Now().Unix() - int64(msg.Timestamp)))
-	if delta > skew {
-		atomic.AddUint64(&amproxy.Counters.BadSkew, 1)
-		fmt.Printf("delta = %.0f, max skew set to %.0f\n", delta, skew)
-		return
-	}
-
-	// validate the metric is on the approved list
-	_, ok = creds.Metrics[msg.Name]
-	if !ok {
-		atomic.AddUint64(&amproxy.Counters.BadMetric, 1)
-		fmt.Printf("not an approved metric: %s\n", msg.Name)
-		return
-	}
-
-	_, err = conn.Write([]byte(msg.MetricStr() + "\n"))
-	if err != nil {
-		atomic.AddUint64(&amproxy.Counters.BadCarbonwrite, 1)
-		println("Write to carbon server failed:", err.Error())
-		return
-	}
-	atomic.AddUint64(&amproxy.Counters.GoodMetric, 1)
+	<-stopChan // wait for signals
+	s.Stop()
 }

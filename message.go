@@ -10,8 +10,10 @@ import (
 	"strings"
 )
 
-var errInvalidNumMessageComponents = errors.New("Invalid number of components in message")
+// ErrInvalidNumMessageComponents is the error returned when parsing a message that has an invaid number of items
+var ErrInvalidNumMessageComponents = errors.New("Invalid number of components in message")
 
+// Message represents an amproxy metric
 type Message struct {
 	Name      string
 	Value     string
@@ -20,16 +22,18 @@ type Message struct {
 	Signature string
 }
 
+// String returns the wire format of the message. The signature must have already been computed
 func (m Message) String() string {
-	return fmt.Sprintf("%s %d %d %s %s", m.Name, m.Value, m.Timestamp, m.PublicKey, m.Signature)
+	return fmt.Sprintf("%s %s %d %s %s", m.Name, m.Value, m.Timestamp, m.PublicKey, m.Signature)
 }
 
-func Decompose(str string) (*Message, error) {
+// Parse attempts to parse the given string into a Message
+func Parse(str string) (*Message, error) {
 	m := &Message{}
 	pieces := strings.Split(strings.TrimSpace(str), " ")
 
 	if len(pieces) != 5 {
-		return nil, errInvalidNumMessageComponents
+		return nil, ErrInvalidNumMessageComponents
 	}
 
 	m.Name = pieces[0]
@@ -47,6 +51,7 @@ func Decompose(str string) (*Message, error) {
 	return m, nil
 }
 
+// ComputeSignature uses the private key to compute the HMAC SHA-256 signature for the message
 func (m Message) ComputeSignature(secret string) string {
 	message := fmt.Sprintf("%s %s %d %s", m.Name, m.Value, m.Timestamp, m.PublicKey)
 	key := []byte(secret)
@@ -55,6 +60,7 @@ func (m Message) ComputeSignature(secret string) string {
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
+// MetricStr returns the carbon wire format of the message
 func (m Message) MetricStr() string {
 	return fmt.Sprintf("%s %s %d", m.Name, m.Value, m.Timestamp)
 }

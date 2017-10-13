@@ -6,15 +6,15 @@ import (
 	"github.com/cheekybits/is"
 )
 
-func TestDecompose(t *testing.T) {
+func TestParse(t *testing.T) {
 	is := is.New(t)
 
 	m := &Message{}
-	m, err := Decompose("foo 1234 1425059762 my_public_key")
+	m, err := Parse("foo 1234 1425059762 my_public_key")
 	is.Err(err)
-	is.Equal(err, errInvalidNumMessageComponents)
+	is.Equal(err, ErrInvalidNumMessageComponents)
 
-	m, err = Decompose("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
+	m, err = Parse("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
 	is.NoErr(err)
 	is.Equal(m.Name, "foo")
 	is.Equal(m.Value, "1234")
@@ -26,7 +26,7 @@ func TestDecompose(t *testing.T) {
 func TestComputeSignature(t *testing.T) {
 	is := is.New(t)
 
-	m, err := Decompose("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
+	m, err := Parse("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
 	is.NoErr(err)
 	is.Equal(m.ComputeSignature("my_secret_key"), "lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
 }
@@ -34,7 +34,7 @@ func TestComputeSignature(t *testing.T) {
 func TestMetricStr(t *testing.T) {
 	is := is.New(t)
 
-	m, err := Decompose("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
+	m, err := Parse("foo 1234 1425059762 my_public_key lT9zOeBVNfTdogqKE5J7p3XWprfu/gOI5D7aWRzjJtc=")
 	is.NoErr(err)
 	is.Equal(m.MetricStr(), "foo 1234 1425059762")
 }
