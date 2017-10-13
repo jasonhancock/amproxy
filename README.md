@@ -29,18 +29,18 @@ and if so, forwards the metric on to Carbon.
 
 ## Configuration
 
-All configuration is done via environment variables. The following options are
-available:
+All configuration is done via flags (will be updated for env vars soon):
 
-* BIND\_INTERFACE - The interface to bind to. Defaults to 127.0.0.1
-* BIND\_PORT - The port to bind to. Defaults to 2005
-* CARBON\_SERVER - The hostname or IP address of the carbon server to
-communicate with. Defaults to `localhost`
-* CARBON\_PORT - The port that Carbon is listening on. Defaults to 2003
-* AUTH_FILE - path to a yaml file with public/private key pairs and the list of
-approved metrics for each keypair. See below
-* SKEW - The maximum skew allowed (in seconds) between the timestamp in a
-message and the current time on the server. Defaults to 300 seconds.
+$ ./amproxy --help
+Usage of ./amproxy:
+  -addr string
+        interface/port to bind to (default ":2005")
+  -auth-file string
+        Location of auth file (default "/etc/amproxy/auth_file.yaml")
+  -carbon-addr string
+        Carbon address:port (default "127.0.0.1:2003")
+  -skew float
+        amount of clock skew tolerated in seconds (default 300)
 
 ## Auth File Format
 
