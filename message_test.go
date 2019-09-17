@@ -9,7 +9,6 @@ import (
 func TestParse(t *testing.T) {
 	is := is.New(t)
 
-	m := &Message{}
 	m, err := Parse("foo 1234 1425059762 my_public_key")
 	is.Err(err)
 	is.Equal(err, ErrInvalidNumMessageComponents)

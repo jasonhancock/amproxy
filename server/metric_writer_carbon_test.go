@@ -20,6 +20,7 @@ func TestMetricWriterCarbon(t *testing.T) {
 	}
 
 	s, err := NewLineProtocolServer(log.With(logger, "component", "line_protocol_server"), ":8096", fn)
+	is.NoErr(err)
 	is.NoErr(s.Run())
 	defer s.Stop()
 
