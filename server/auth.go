@@ -1,8 +1,6 @@
 package server
 
-import (
-	"github.com/pkg/errors"
-)
+import "errors"
 
 // ErrCredentialsNotFound is the error returned by an AuthProvider if credentials
 // corresponding to a given AccessKey cannot be located
@@ -14,18 +12,13 @@ type AuthProvider interface {
 	// If no corresponding credentials can be found, an ErrCredentialsNotFound will
 	// be returned.
 	CredsForKey(string) (*Creds, error)
-
-	// Run will be called in a goroutine to allow the AuthProvider to perform
-	// background tasks. When he channel is closed the provider is expected to
-	// return
-	Run(done <-chan struct{})
 }
 
 // Creds represents an api key set and the metrics they are allowed to access
 type Creds struct {
-	AccessKey string           `yaml:"access_key"`
-	SecretKey string           `yaml:"secret_key"`
-	Metrics   map[string]uint8 `yaml:"metrics"`
+	AccessKey string              `yaml:"access_key"`
+	SecretKey string              `yaml:"secret_key"`
+	Metrics   map[string]struct{} `yaml:"metrics"`
 }
 
 // AllowMetric returns true if a given metric is allowed for this set of credentials
@@ -44,5 +37,3 @@ func (m *mockAuthProvider) CredsForKey(key string) (*Creds, error) {
 	}
 	panic("not implemented")
 }
-
-func (m *mockAuthProvider) Run(done <-chan struct{}) {}

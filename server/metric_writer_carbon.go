@@ -1,35 +1,33 @@
 package server
 
 import (
+	"fmt"
 	"net"
 
-	"github.com/go-kit/kit/log"
-	"github.com/jasonhancock/amproxy"
-	"github.com/pkg/errors"
+	"github.com/jasonhancock/amproxy/pkg/amproxy"
+	"github.com/jasonhancock/go-logger"
 	"gopkg.in/fatih/pool.v2"
 )
 
 // MetricWriterCarbon will write metrics to a Carbon server. It pools connections.
 type MetricWriterCarbon struct {
-	logger log.Logger
-	pool   pool.Pool
+	pool pool.Pool
 }
 
 // NewMetricWriterCarbon creates a new MetricWriterCarbon
-func NewMetricWriterCarbon(l log.Logger, addr string, poolMin, poolMax int) (*MetricWriterCarbon, error) {
+func NewMetricWriterCarbon(l *logger.L, addr string, poolMin, poolMax int) (*MetricWriterCarbon, error) {
 	factory := func() (net.Conn, error) {
-		l.Log("msg", "establishing_connection", "addr", addr)
+		l.Info("establishing_connection", "addr", addr)
 		return net.Dial("tcp", addr)
 	}
 
 	pool, err := pool.NewChannelPool(poolMin, poolMax, factory)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating pool")
+		return nil, fmt.Errorf("creating pool: %w", err)
 	}
 
 	m := &MetricWriterCarbon{
-		logger: l,
-		pool:   pool,
+		pool: pool,
 	}
 
 	return m, nil
@@ -39,7 +37,7 @@ func NewMetricWriterCarbon(l log.Logger, addr string, poolMin, poolMax int) (*Me
 func (mw *MetricWriterCarbon) WriteMetric(m amproxy.Message) error {
 	conn, err := mw.pool.Get()
 	if err != nil {
-		return errors.Wrap(err, "getting connection from pool")
+		return fmt.Errorf("getting connection from pool: %w", err)
 	}
 
 	_, err = conn.Write([]byte(m.MetricStr() + "\n"))
@@ -49,9 +47,8 @@ func (mw *MetricWriterCarbon) WriteMetric(m amproxy.Message) error {
 			pc.MarkUnusable()
 			pc.Close()
 		}
-		return errors.Wrap(err, "writing to connection")
+		return fmt.Errorf("writing to connection: %w", err)
 	}
 
-	conn.Close()
-	return nil
+	return conn.Close()
 }

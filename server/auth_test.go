@@ -3,20 +3,18 @@ package server
 import (
 	"testing"
 
-	"github.com/cheekybits/is"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCredsAllowMetric(t *testing.T) {
-	is := is.New(t)
-
 	c := &Creds{
-		Metrics: map[string]uint8{
-			"metric1": 1,
-			"metric2": 1,
+		Metrics: map[string]struct{}{
+			"metric1": {},
+			"metric2": {},
 		},
 	}
 
-	is.True(c.AllowMetric("metric1"))
-	is.True(c.AllowMetric("metric2"))
-	is.False(c.AllowMetric("metric3"))
+	require.True(t, c.AllowMetric("metric1"))
+	require.True(t, c.AllowMetric("metric2"))
+	require.False(t, c.AllowMetric("metric3"))
 }

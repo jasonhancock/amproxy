@@ -1,13 +1,13 @@
 package server
 
 import (
-	"io/ioutil"
+	"context"
+	"fmt"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
+	"github.com/jasonhancock/go-logger"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,13 +20,13 @@ type AuthProviderStaticFile struct {
 	credentials  map[string]Creds
 	modTime      time.Time
 	lock         sync.RWMutex
-	logger       log.Logger
+	logger       *logger.L
 }
 
 // NewAuthProviderStaticFile creates a new static file auth provider. filename is
 // the path to the file on disk. pollInterval is how frequently to check the file
 // for modification time updates.
-func NewAuthProviderStaticFile(l log.Logger, filename string, pollInterval time.Duration) (*AuthProviderStaticFile, error) {
+func NewAuthProviderStaticFile(ctx context.Context, l *logger.L, filename string, pollInterval time.Duration) (*AuthProviderStaticFile, error) {
 	a := &AuthProviderStaticFile{
 		File:         filename,
 		credentials:  make(map[string]Creds),
@@ -34,27 +34,28 @@ func NewAuthProviderStaticFile(l log.Logger, filename string, pollInterval time.
 		logger:       l,
 	}
 
-	err := a.loadFile()
-	if err != nil {
-		return nil, errors.Wrap(err, "loading auth file")
+	if err := a.loadFile(); err != nil {
+		return nil, fmt.Errorf("loading auth file: %w", err)
 	}
+
+	go a.run(ctx)
 
 	return a, nil
 }
 
-// Run starts the file watcher. To stop it, close the done channel
-func (a *AuthProviderStaticFile) Run(done <-chan struct{}) {
-	a.logger.Log("msg", "running")
+// run starts the file watcher. To stop it, cancel the context.
+func (a *AuthProviderStaticFile) run(ctx context.Context) {
+	a.logger.Info("running")
 	ticker := time.NewTicker(a.pollInterval)
 
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			err := a.checkReload()
 			if err != nil {
-				a.logger.Log("msg", "check_reload_error", "error", err)
+				a.logger.LogError("check_reload_error", err)
 			}
 		}
 	}
@@ -65,15 +66,14 @@ func (a *AuthProviderStaticFile) Run(done <-chan struct{}) {
 func (a *AuthProviderStaticFile) checkReload() error {
 	info, err := os.Stat(a.File)
 	if err != nil {
-		return errors.Wrap(err, "stat'ing auth file")
+		return fmt.Errorf("stat'ing auth file: %w", err)
 	}
 
 	ts := info.ModTime()
 	if ts != a.modTime {
-		a.logger.Log("msg", "auth_file_reload")
-		err = a.loadFile()
-		if err != nil {
-			return errors.Wrap(err, "reloading auth file")
+		a.logger.Info("initiating auth file reload")
+		if err := a.loadFile(); err != nil {
+			return fmt.Errorf("reloading auth file: %w", err)
 		}
 	}
 	return nil
@@ -95,28 +95,54 @@ func (a *AuthProviderStaticFile) CredsForKey(accessKey string) (*Creds, error) {
 
 // loadFile loads the auth file into memory
 func (a *AuthProviderStaticFile) loadFile() error {
+
 	var config struct {
-		Apikeys map[string]Creds `yaml:"apikeys"`
+		Apikeys map[string]fileCreds `yaml:"apikeys"`
 	}
 
-	info, err := os.Stat(a.File)
+	fh, err := os.Open(a.File)
 	if err != nil {
-		return errors.Wrap(err, "stat'ing file")
+		return fmt.Errorf("opening %q: %w", a.File, err)
+	}
+	defer fh.Close()
+
+	info, err := fh.Stat()
+	if err != nil {
+		return fmt.Errorf("stat'ing auth file: %w", err)
 	}
 
-	bytes, err := ioutil.ReadFile(a.File)
-	if err != nil {
-		return errors.Wrap(err, "reading file")
+	if err = yaml.NewDecoder(fh).Decode(&config); err != nil {
+		return fmt.Errorf("unmarshaling yaml: %w", err)
 	}
-	err = yaml.Unmarshal(bytes, &config)
-	if err != nil {
-		return errors.Wrap(err, "unmarshaling yaml")
+
+	creds := make(map[string]Creds, len(config.Apikeys))
+	for k, v := range config.Apikeys {
+		creds[k] = v.To()
 	}
 
 	a.lock.Lock()
-	a.credentials = config.Apikeys
+	a.credentials = creds
 	a.modTime = info.ModTime()
 	a.lock.Unlock()
 
 	return nil
+}
+
+type fileCreds struct {
+	AccessKey string   `yaml:"access_key"`
+	SecretKey string   `yaml:"secret_key"`
+	Metrics   []string `yaml:"metrics"`
+}
+
+func (c fileCreds) To() Creds {
+	cr := Creds{
+		SecretKey: c.SecretKey,
+		Metrics:   make(map[string]struct{}, len(c.Metrics)),
+	}
+
+	for _, v := range c.Metrics {
+		cr.Metrics[v] = struct{}{}
+	}
+
+	return cr
 }
