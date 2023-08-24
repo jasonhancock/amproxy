@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  graphite:
+    image: graphiteapp/graphite-statsd:1.1.10-5
+    ports:
+      - "8080:80"
+      - "2003-2004:2003-2004"
+      - "2023-2024:2023-2024"
+      - "8125:8125/udp"
+      - "8126:8126"

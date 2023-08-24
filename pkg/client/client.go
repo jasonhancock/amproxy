@@ -1,14 +1,16 @@
-package amproxy
+package client
 
 import (
+	"errors"
+	"fmt"
 	"net"
 
-	"github.com/pkg/errors"
+	"github.com/jasonhancock/amproxy/pkg/amproxy"
 )
 
 // ErrorNotConnected is the error returned when Write is called but the client
 // isn't connected to the remote server yet
-var ErrorNotConnected = errors.New("You must call Connect() before attempting to write metrics")
+var ErrorNotConnected = errors.New("you must call Connect() before attempting to write metrics")
 
 // Client is a client that will sign metrics and send to an amproxy server
 type Client struct {
@@ -28,7 +30,7 @@ func NewClient(apiKey, apiSecret, serverAddr string) *Client {
 }
 
 // Write computes the signature for the message and ships it over the wire
-func (c *Client) Write(m Message) error {
+func (c *Client) Write(m amproxy.Message) error {
 	if c.conn == nil {
 		return ErrorNotConnected
 	}
@@ -44,7 +46,7 @@ func (c *Client) Connect() error {
 	if c.conn == nil {
 		conn, err := net.Dial("tcp", c.addr)
 		if err != nil {
-			return errors.Wrap(err, "dialing "+c.addr)
+			return fmt.Errorf("dialing %q: %w", c.addr, err)
 		}
 		c.conn = conn
 	}
@@ -57,7 +59,7 @@ func (c *Client) Disconnect() error {
 		err := c.conn.Close()
 		c.conn = nil
 		if err != nil {
-			return errors.Wrap(err, "closing connection")
+			return fmt.Errorf("closing connection: %w", err)
 		}
 	}
 	return nil

@@ -1,8 +1,6 @@
 package server
 
-import (
-	"github.com/jasonhancock/amproxy"
-)
+import "github.com/jasonhancock/amproxy/pkg/amproxy"
 
 // MetricWriter is the interface for a backend metrics store
 type MetricWriter interface {
